@@ -1,0 +1,44 @@
+.nav-button {
+  border: none;
+  outline: none;
+  margin-bottom: 3px;
+}
+
+.prev-button {
+  margin-left: 1px;
+}
+
+.next-button {
+  margin-right: 1px;
+}
+
+.middle-line {
+  background: linear-gradient(rgb(129, 129, 129), rgb(129, 129, 129));
+  background-size: 2px 100%;
+  background-repeat: no-repeat;
+  background-position: 12.5%;
+  /* padding-right: 2.5rem !important;
+  padding-left: 3rem !important; */
+}
+
+.dropdown-icon {
+  margin-right: 0.5rem;
+  margin-left: -1.5rem;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.date-grid {
+  justify-self: center;
+  align-self: flex-end;
+}
+
+.dropdown-date-button {
+  font-weight: bold;
+  z-index: 999;
+  border-radius: 0px;
+}
+
+.dropdown-date-button .fieldset {
+  border: none;
+}

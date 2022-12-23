@@ -1,0 +1,15 @@
+{
+  "nApiKey": "abc123456",
+  "tileURL": "https://api.nearmap.com/tiles/v3",
+  "coverageURL": "https://api.nearmap.com/coverage/v2/coord",
+  "direction": "Vert",
+  "originLongitude": -97.75,
+  "originLatitude": 30.269135,
+  "originZoom": 17,
+  "nearmapMinZoom": 17,
+  "nearmapMaxZoom": 24,
+  "opacity": 1,
+  "tilesize": 256,
+  "earthCircumference": 40075016.685568,
+  "inchesPerMeter": 39.37
+}
