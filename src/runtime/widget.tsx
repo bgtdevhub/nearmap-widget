@@ -8,6 +8,7 @@ import LOD from 'esri/layers/support/LOD';
 import SpatialReference from 'esri/geometry/SpatialReference';
 import Point from 'esri/geometry/Point';
 import Swipe from 'esri/widgets/Swipe';
+import reactiveUtils from 'esri/core/reactiveUtils';
 
 import MapDatepicker from './components/MapDatepicker';
 import CompareNearmapButton from './components/CompareNearmapButton';
@@ -21,10 +22,9 @@ import {
 } from './components/Utils';
 
 import './widget.css';
-import { Modal, ModalBody, ModalHeader } from 'jimu-ui';
-import reactiveUtils from 'esri/core/reactiveUtils';
+import { Modal, ModalBody, ModalHeader, Alert } from 'jimu-ui';
 
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
 const NO_KEY = 'API key not found';
 const NO_COVERAGE = 'You are not authorized to access this area';
@@ -61,6 +61,37 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
+
+    const map = new Map();
+    jmvObjRef.current.view.map = map;
+    jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
+    jmvObjRef.current.view.constraints = {
+      lods,
+      maxZoom: nearmapMaxZoom
+    };
+
+    if (errorMode.length === 0) {
+      const nearmapSince = generateWebTileLayer(mapDate);
+      // add the layer to the view
+      jmvObjRef.current.view.map.add(nearmapSince);
+      // checkLayerViewError(nearmapSince);
+    }
+
+    reactiveUtils.when(
+      () => jmvObjRef.current.view.stationary === true,
+      () => {
+        setLonLat([
+          jmvObjRef.current.view.center.longitude,
+          jmvObjRef.current.view.center.latitude
+        ]);
+      }
+    );
+
+    reactiveUtils
+      .whenOnce(() => jmvObjRef.current.view.ready)
+      .then(() => {
+        console.log('MapView is ready.');
+      });
   };
 
   // Taken from https://gist.github.com/stdavis/6e5c721d50401ddbf126
@@ -140,17 +171,23 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const syncDates = (nmDateList: string[]) => {
     if (dateList.join() !== nmDateList.join()) {
       setDateList(nmDateList);
+    }
+    if (!nmDateList.includes(mapDate)) {
+      setMapDate(nmDateList[0]);
+    }
+    if (!nmDateList.includes(compareDate)) {
+      setCompareDate(nmDateList[nmDateList.length - 1]);
+    }
+  };
 
-      if (!nmDateList.includes(mapDate)) {
-        setMapDate(nmDateList[0]);
-        setCompareDate(nmDateList[nmDateList.length - 1]);
-      }
+  const checkErrorExist = (errorType: string) => {
+    if (!errorMode.includes(errorType)) {
+      setErrorMode([...errorMode, errorType]);
     }
   };
 
   // fetch list of capture date based on origin
-  useCallback(() => {
-    console.log('fetch');
+  useEffect(() => {
     const originLon = lon2tile(lonLat[0], originZoom);
     const originLat = lat2tile(lonLat[1], originZoom);
 
@@ -162,11 +199,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         switch (true) {
           case data.error === NO_KEY:
           case data.error === NO_COVERAGE: {
-            setErrorMode([...errorMode, data.error]);
+            checkErrorExist(data.error);
             break;
           }
           case data.surveys.length === 0: {
-            setErrorMode([...errorMode, NO_DATE]);
+            checkErrorExist(NO_DATE);
             break;
           }
           default: {
@@ -174,7 +211,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             const nmDateList: string[] = data.surveys.map(
               (d: nearmapCoverage) => d.captureDate
             );
-            console.log(nmDateList);
+            // console.log(nmDateList);
             syncDates(nmDateList);
           }
         }
@@ -182,60 +219,9 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       .catch((err) => console.log(`nearmap coverage error: ${err}`));
   }, [originZoom, lonLat, nApiKey]);
 
-  // run on mount
-  useEffect(() => {
-    // console.log('onMount');
-    // setting up the map
-    const map = new Map();
-    jmvObjRef.current.view.map = map;
-    jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
-    jmvObjRef.current.view.constraints = {
-      lods,
-      maxZoom: nearmapMaxZoom
-    };
-
-    if (errorMode.length === 0) {
-      const nearmapSince = generateWebTileLayer(mapDate);
-      // add the layer to the view
-      jmvObjRef.current.view.map.add(nearmapSince);
-      // checkLayerViewError(nearmapSince);
-    }
-
-    // drag? set center back
-    // jmvObjRef.current.view.on('drag', (e) => {
-    //   if (e.action === 'end') {
-    //     setLonLat([
-    //       jmvObjRef.current.view.center.longitude,
-    //       jmvObjRef.current.view.center.latitude
-    //     ]);
-    //   }
-    // });
-    reactiveUtils.when(
-      () => jmvObjRef.current.view.stationary === true,
-      () => {
-        setLonLat([
-          jmvObjRef.current.view.center.longitude,
-          jmvObjRef.current.view.center.latitude
-        ]);
-      }
-    );
-    reactiveUtils
-      .whenOnce(() => jmvObjRef.current.view.ready)
-      .then(() => {
-        console.log('MapView is ready.');
-      });
-
-    // jmvObjRef.current.view
-    //   .when(() => {
-    //     console.log('MapView is ready.');
-    //   })
-    //   .catch((err) => console.log(err));
-  }, [errorMode]);
-
   // date change hook
   const useMapDate = (date: string, isCompare = false): void => {
     useEffect(() => {
-      console.log(errorMode);
       if (errorMode.length === 0) {
         const newMapLayer = generateWebTileLayer(date, isCompare);
         // put compare map at back
@@ -306,14 +292,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         />
       )}
       {jmvObjRef && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 30px 200px',
-            marginBottom: '0.5rem',
-            columnGap: 1
-          }}
-        >
+        <div className="grid-nav">
           <MapDatepicker
             mapDate={mapDate}
             setMapDate={setMapDate}
@@ -342,6 +321,18 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             </ul>
           </ModalBody>
         </Modal>
+      </div>
+      <div>
+        <Alert
+          // closable
+          form="basic"
+          onClose={() => {}}
+          open={errorMode.includes(NO_COVERAGE)}
+          text="No Nearmap imagery found for this area. Try another area"
+          type="info"
+          withIcon
+          style={{ width: '420px' }}
+        />
       </div>
     </div>
   );

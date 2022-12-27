@@ -35,23 +35,6 @@ interface DatePickerProps {
   dateList: string[];
 }
 
-// const buttonStyle: React.CSSProperties = {
-//   backgroundColor: 'white',
-//   // py: '8px',
-//   marginLeft: '-10px',
-//   marginRight: '-10px',
-//   outline: 'none',
-//   '&:hover': {
-//     backgroundColor: 'ghostwhite'
-//   },
-//   '&:focus': {
-//     outline: 'none'
-//   },
-//   '&:focusVisible': {
-//     outline: 'none'
-//   }
-// };
-
 const renderSelectedDate = (date: string): string => {
   const parsedDate = parse(date, 'yyyy-MM-dd', new Date());
   return format(parsedDate, 'E MMM dd yyyy');
@@ -59,13 +42,12 @@ const renderSelectedDate = (date: string): string => {
 
 const renderMenuItem = (
   dateList: string[],
-  handleDateChange
+  handleDateChange: any
 ): JSX.Element[] => {
   return dateList.map((d) => {
     // check for year
     if (d.length === 4) {
       return (
-        // <DropdownItem key={d} sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
         <DropdownItem header key={d}>
           {d}
         </DropdownItem>
@@ -167,35 +149,39 @@ const MapDatepicker = ({
     <div className="date-grid">
       <Button
         aria-label="Previous Date"
+        size="lg"
         icon
         onClick={() => getTargetDate(true)}
         disabled={prevDisabled}
-        size="default"
         className="nav-button prev-button"
       >
-        <Icon icon={NavigateBeforeIcon} size="l" />
+        <Icon icon={NavigateBeforeIcon} size="l" className="nav-icon" />
       </Button>
       <Dropdown activeIcon="false" direction="up" menuRole="menu">
         <DropdownButton
-          size="default"
+          size="lg"
           arrow={false}
           className="dropdown-date-button"
         >
           {renderSelectedDate(mapDate)}
         </DropdownButton>
-        <DropdownMenu alignment="center" maxHeight={300}>
+        <DropdownMenu
+          alignment="center"
+          maxHeight={300}
+          className="dropdown-menu"
+        >
           {renderMenuItem(finalMenuItem, handleDateChange)}
         </DropdownMenu>
       </Dropdown>
       <Button
         aria-label="Next Date"
+        size="lg"
         icon
         onClick={() => getTargetDate(false)}
         disabled={nextDisabled}
-        size="default"
         className="nav-button next-button"
       >
-        <Icon icon={NavigateNextIcon} size="l" />
+        <Icon icon={NavigateNextIcon} size="l" className="nav-icon" />
       </Button>
     </div>
   );
