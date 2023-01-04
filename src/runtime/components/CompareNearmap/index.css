@@ -1,0 +1,22 @@
+.compare-grid {
+  justify-self: center;
+  margin-top: 1px;
+  grid-column: 2 / 2;
+  grid-row: 2 / 2;
+}
+
+.compare-button {
+  border: 0px;
+  outline: 0px;
+  background-color: white;
+  padding-right: 11px !important;
+  padding-left: 11px !important;
+}
+
+@media screen and (max-width: 480px) {
+  .compare-button {
+    min-width: 20px !important;
+    margin-top: 21px;
+    height: 58px;
+  }
+}

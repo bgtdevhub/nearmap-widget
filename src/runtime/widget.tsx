@@ -9,9 +9,10 @@ import SpatialReference from 'esri/geometry/SpatialReference';
 import Point from 'esri/geometry/Point';
 import Swipe from 'esri/widgets/Swipe';
 import reactiveUtils from 'esri/core/reactiveUtils';
+import { Modal, ModalBody, ModalHeader, Alert, Switch } from 'jimu-ui';
 
 import MapDatepicker from './components/MapDatepicker';
-import CompareNearmapButton from './components/CompareNearmapButton';
+import CompareNearmapButton from './components/CompareNearmap';
 import { IMConfig, nearmapCoverage } from '../config';
 import {
   addSwipeLayer,
@@ -22,7 +23,6 @@ import {
 } from './components/Utils';
 
 import './widget.css';
-import { Modal, ModalBody, ModalHeader, Alert } from 'jimu-ui';
 
 const { useState, useEffect, useRef } = React;
 
@@ -57,13 +57,15 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [lonLat, setLonLat] = useState([originLongitude, originLatitude]);
   const [compareDate, setCompareDate] = useState(dateToday);
   const [compare, setCompare] = useState(false);
+  const [nmapActive, setNmapActive] = useState(false);
+  const [nmapDisable, setNmapDisable] = useState(false);
   const [errorMode, setErrorMode] = useState([]);
 
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
 
-    const map = new Map();
-    jmvObjRef.current.view.map = map;
+    // const map = new Map();
+    // jmvObjRef.current.view.map = map;
     jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
     jmvObjRef.current.view.constraints = {
       lods,
@@ -154,18 +156,18 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     return wtl;
   };
 
-  const checkLayerViewError = (weblayer: WebTileLayer) => {
-    jmvObjRef.current.view
-      .whenLayerView(weblayer)
-      .then(() => {
-        console.log('layer OK');
-        // console.log(res);
-      })
-      .catch((err) => {
-        console.log('layer is not OK!!!!!');
-        console.log(err.message, err.details.layer.id);
-      });
-  };
+  // const checkLayerViewError = (weblayer: WebTileLayer) => {
+  //   jmvObjRef.current.view
+  //     .whenLayerView(weblayer)
+  //     .then(() => {
+  //       console.log('layer OK');
+  //       // console.log(res);
+  //     })
+  //     .catch((err) => {
+  //       console.log('layer is not OK!!!!!');
+  //       console.log(err.message, err.details.layer.id);
+  //     });
+  // };
 
   // sync date function for new date list
   const syncDates = (nmDateList: string[]) => {
@@ -184,6 +186,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     if (!errorMode.includes(errorType)) {
       setErrorMode([...errorMode, errorType]);
     }
+    setNmapDisable(true);
   };
 
   // fetch list of capture date based on origin
@@ -227,7 +230,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         // put compare map at back
         const index = isCompare ? 0 : 1;
         // set compare map visibility to false when compare is false
-        if (!compare && isCompare) {
+        if (!nmapActive || (!compare && isCompare)) {
           newMapLayer.visible = false;
         }
         jmvObjRef.current.view.map.add(newMapLayer, index);
@@ -248,7 +251,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           removeSwipeLayer(isCompare, swipeWidgetRef.current);
         }
       };
-    }, [date, compare, errorMode]);
+    }, [date, compare, errorMode, nmapActive]);
   };
 
   // compare date
@@ -283,6 +286,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     };
   }, [compare, errorMode]);
 
+  const handleNmapActive = (): void => {
+    setNmapActive(!nmapActive);
+    if (compare) setCompare(false);
+  };
+
   return (
     <div className="jimu-widget">
       {props.useMapWidgetIds && props.useMapWidgetIds.length === 1 && (
@@ -293,13 +301,26 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       )}
       {jmvObjRef && (
         <div className="grid-nav">
-          <MapDatepicker
-            mapDate={mapDate}
-            setMapDate={setMapDate}
-            dateList={dateList}
-          />
-          <CompareNearmapButton compare={compare} set={setCompare} />
-          {compare && (
+          <div className="nmapactive-button">
+            <Switch
+              checked={nmapActive}
+              disabled={nmapDisable}
+              onChange={handleNmapActive}
+            />
+          </div>
+          {!nmapDisable && [
+            <MapDatepicker
+              mapDate={mapDate}
+              setMapDate={setMapDate}
+              dateList={dateList}
+            />,
+            <CompareNearmapButton
+              compare={compare}
+              set={setCompare}
+              disabled={!nmapActive}
+            />
+          ]}
+          {!nmapDisable && compare && (
             <MapDatepicker
               mapDate={compareDate}
               setMapDate={setCompareDate}

@@ -15,16 +15,31 @@ body,
   width: 100%;
 }
 
-#mapDatePicker {
-  position: absolute;
-  left: 50%;
-  bottom: 2%;
-  transform: translate(-50%);
-}
-
 .grid-nav {
   display: grid;
-  grid-template-columns: 250px 30px 250px;
+  grid-template-columns: 250px 40px 250px;
   margin-bottom: 0.5rem;
-  column-gap: 1;
+  row-gap: 2px;
+  /* column-gap: 2px; */
+}
+
+.nmapactive-button {
+  justify-self: center;
+  align-self: center;
+  background-color: white;
+  border-radius: 2px;
+  padding: 9px;
+  grid-column: 2 / 2;
+  grid-row: 1 / 1;
+}
+
+@media screen and (max-width: 480px) {
+  .grid-nav {
+    display: grid;
+    grid-template-columns: 130px 40px 130px;
+  }
+
+  .nmapactive-button {
+    margin-bottom: -20px;
+  }
 }
