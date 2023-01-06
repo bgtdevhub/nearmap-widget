@@ -1,7 +1,6 @@
 import { React, AllWidgetProps } from 'jimu-core';
 import { JimuMapViewComponent, JimuMapView } from 'jimu-arcgis';
 import format from 'date-fns/format';
-import Map from 'esri/Map';
 import WebTileLayer from 'esri/layers/WebTileLayer';
 import TileInfo from 'esri/layers/support/TileInfo';
 import LOD from 'esri/layers/support/LOD';
@@ -251,7 +250,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           removeSwipeLayer(isCompare, swipeWidgetRef.current);
         }
       };
-    }, [date, compare, errorMode, nmapActive]);
+    }, [date, compare, errorMode.length, nmapActive]);
   };
 
   // compare date
@@ -284,7 +283,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         swipeWidgetRef.current.destroy();
       }
     };
-  }, [compare, errorMode]);
+  }, [compare, errorMode.length]);
 
   const handleNmapActive = (): void => {
     setNmapActive(!nmapActive);
