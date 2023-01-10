@@ -1,6 +1,6 @@
 # Nearmap Widget for ArcGIS Experience Builder
 
-### How to use
+## How to use
 
 1. Download the files in this folder
 2. Place the _nearmap-integration_ folder inside the folder inside your custom widgets folder of your client's side of ArcGIS Experience Builder
@@ -18,3 +18,10 @@ npm install
    - Select map
    - Enter Nearmap API Key
 6. Save the map and preview
+
+### Recommended placement in style
+
+- Width : auto
+- Height : auto
+- Snap to bottom
+- Horizontal Center
