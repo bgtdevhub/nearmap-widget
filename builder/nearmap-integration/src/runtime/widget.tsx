@@ -32,9 +32,6 @@ const NO_DATE = 'No Datelist Found';
 const Widget = (props: AllWidgetProps<IMConfig>) => {
   // User Input Parameters
   const dateToday = format(new Date(), 'yyyy-MM-dd');
-  const swipeWidgetRef = useRef<Swipe>();
-  const jmvObjRef = useRef(null);
-
   const {
     nApiKey, // "NEARMAP_API_KEY_GOES_HERE"
     tileURL, // Nearmap Tile API URL base
@@ -59,6 +56,20 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [nmapActive, setNmapActive] = useState(false);
   const [nmapDisable, setNmapDisable] = useState(false);
   const [errorMode, setErrorMode] = useState([]);
+
+  const swipeWidgetRef = useRef<Swipe>();
+  const jmvObjRef = useRef(null);
+  const compareRef = useRef(false);
+
+  const handleCompareRef = (value: boolean): void => {
+    setCompare(value);
+    compareRef.current = value;
+  };
+
+  const handleNmapActive = (): void => {
+    setNmapActive(!nmapActive);
+    if (compare) handleCompareRef(false);
+  };
 
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
@@ -229,7 +240,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         // put compare map at back
         const index = isCompare ? 0 : 1;
         // set compare map visibility to false when compare is false
-        if (!nmapActive || (!compare && isCompare)) {
+        if (!nmapActive || (!compareRef.current && isCompare)) {
           newMapLayer.visible = false;
         }
         jmvObjRef.current.view.map.add(newMapLayer, index);
@@ -250,7 +261,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           removeSwipeLayer(isCompare, swipeWidgetRef.current);
         }
       };
-    }, [date, compare, errorMode.length, nmapActive]);
+    }, [date, errorMode.length, nmapActive]);
   };
 
   // compare date
@@ -261,11 +272,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   // compare function
   useEffect(() => {
     if (errorMode.length === 0) {
-      const nearmapLead = jmvObjRef.current.view.map.findLayerById(mapDate);
-      const [nearmapTrail] = jmvObjRef.current.view.map.layers.filter(
-        (cp: __esri.Layer) => cp.id.includes('compare')
-      );
       if (compare) {
+        const nearmapLead = jmvObjRef.current.view.map.findLayerById(mapDate);
+        const [nearmapTrail] = jmvObjRef.current.view.map.layers.filter(
+          (cp: __esri.Layer) => cp.id.includes('compare')
+        );
+        nearmapTrail.visible = true;
         // create a new Swipe widget
         const swipe = new Swipe({
           leadingLayers: [nearmapLead],
@@ -279,16 +291,15 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       }
     }
     return () => {
+      const [nearmapTrail]: any = jmvObjRef.current.view.map.layers.filter(
+        (cp: __esri.Layer) => cp.id.includes('compare')
+      );
+      if (nearmapTrail !== undefined) nearmapTrail.visible = false;
       if (swipeWidgetRef.current !== undefined) {
         swipeWidgetRef.current.destroy();
       }
     };
   }, [compare, errorMode.length]);
-
-  const handleNmapActive = (): void => {
-    setNmapActive(!nmapActive);
-    if (compare) setCompare(false);
-  };
 
   return (
     <div className="jimu-widget">
@@ -320,7 +331,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
               />,
               <CompareNearmapButton
                 compare={compare}
-                set={setCompare}
+                set={handleCompareRef}
                 disabled={!nmapActive}
               />
             ]}
