@@ -146,7 +146,12 @@ const MapDatepicker = ({
       >
         <Icon icon={NavigateBeforeIcon} size="l" className="nav-icon" />
       </Button>
-      <Dropdown activeIcon="false" direction="up" menuRole="menu">
+      <Dropdown
+        activeIcon="false"
+        direction="up"
+        menuRole="menu"
+        className="dropdown-grid"
+      >
         <DropdownButton
           size="lg"
           arrow={false}

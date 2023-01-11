@@ -9,8 +9,7 @@
   border: 0px;
   outline: 0px;
   background-color: white;
-  padding-right: 11px !important;
-  padding-left: 11px !important;
+  width: 45px;
 }
 
 @media screen and (max-width: 480px) {

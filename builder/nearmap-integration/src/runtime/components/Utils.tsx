@@ -29,6 +29,8 @@ export const addSwipeLayer = (
   layer: __esri.WebTileLayer,
   swipe: __esri.Swipe
 ): void => {
+  console.log('swipe exist', swipe);
+  console.log('compare', isCompare);
   if (isCompare) {
     swipe.trailingLayers.add(layer);
   } else {

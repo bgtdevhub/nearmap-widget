@@ -23,14 +23,17 @@ body,
   /* column-gap: 2px; */
 }
 
-.nmapactive-button {
+.nmapactive-button,
+.nmapactive-button-alt {
   justify-self: center;
-  align-self: center;
   background-color: white;
-  border-radius: 2px;
-  padding: 9px;
+  border-radius: 3px;
+  width: 45px;
+  height: 38px;
   grid-column: 2 / 2;
   grid-row: 1 / 1;
+  text-align: center;
+  padding-top: 8.5px;
 }
 
 @media screen and (max-width: 480px) {
@@ -41,5 +44,9 @@ body,
 
   .nmapactive-button {
     margin-bottom: -20px;
+  }
+
+  .nmapactive-button-alt {
+    margin-bottom: 20px;
   }
 }

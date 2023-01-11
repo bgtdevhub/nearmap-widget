@@ -300,25 +300,30 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       )}
       {jmvObjRef && (
         <div className="grid-nav">
-          <div className="nmapactive-button">
+          <div
+            className={
+              nmapActive ? 'nmapactive-button' : 'nmapactive-button-alt'
+            }
+          >
             <Switch
               checked={nmapActive}
               disabled={nmapDisable}
               onChange={handleNmapActive}
             />
           </div>
-          {!nmapDisable && [
-            <MapDatepicker
-              mapDate={mapDate}
-              setMapDate={setMapDate}
-              dateList={dateList}
-            />,
-            <CompareNearmapButton
-              compare={compare}
-              set={setCompare}
-              disabled={!nmapActive}
-            />
-          ]}
+          {!nmapDisable &&
+            nmapActive && [
+              <MapDatepicker
+                mapDate={mapDate}
+                setMapDate={setMapDate}
+                dateList={dateList}
+              />,
+              <CompareNearmapButton
+                compare={compare}
+                set={setCompare}
+                disabled={!nmapActive}
+              />
+            ]}
           {!nmapDisable && compare && (
             <MapDatepicker
               mapDate={compareDate}
