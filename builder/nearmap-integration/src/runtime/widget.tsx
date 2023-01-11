@@ -61,14 +61,14 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const jmvObjRef = useRef(null);
   const compareRef = useRef(false);
 
-  const handleCompareRef = (value: boolean): void => {
+  const handleCompare = (value: boolean): void => {
     setCompare(value);
     compareRef.current = value;
   };
 
   const handleNmapActive = (): void => {
     setNmapActive(!nmapActive);
-    if (compare) handleCompareRef(false);
+    if (compare) handleCompare(false);
   };
 
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
@@ -240,7 +240,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         // put compare map at back
         const index = isCompare ? 0 : 1;
         // set compare map visibility to false when compare is false
-        if (!nmapActive || (!compareRef.current && isCompare)) {
+        if (!compareRef.current && isCompare) {
           newMapLayer.visible = false;
         }
         jmvObjRef.current.view.map.add(newMapLayer, index);
@@ -261,7 +261,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           removeSwipeLayer(isCompare, swipeWidgetRef.current);
         }
       };
-    }, [date, errorMode.length, nmapActive]);
+    }, [date, errorMode.length]);
   };
 
   // compare date
@@ -301,6 +301,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     };
   }, [compare, errorMode.length]);
 
+  useEffect(() => {
+    const nearmapLead = jmvObjRef.current.view.map.findLayerById(mapDate);
+    nearmapLead.visible = nmapActive;
+  }, [nmapActive, mapDate]);
+
   return (
     <div className="jimu-widget">
       {props.useMapWidgetIds && props.useMapWidgetIds.length === 1 && (
@@ -331,7 +336,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
               />,
               <CompareNearmapButton
                 compare={compare}
-                set={handleCompareRef}
+                set={handleCompare}
                 disabled={!nmapActive}
               />
             ]}
