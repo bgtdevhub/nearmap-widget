@@ -15,6 +15,7 @@ import NavigateNextIcon from '../../asset/navigate_next_black_24dp.svg';
 import TripOriginOutlinedIcon from '../../asset/trip_origin_black_24dp.svg';
 
 import './index.css';
+import { useCallback } from 'react';
 
 const { useState, useEffect } = React;
 
@@ -84,29 +85,32 @@ const MapDatepicker = ({
   const finalMenuItem = menuItem.flat();
 
   // change button disability, return target index
-  const navButtonState = (date: string): void => {
-    const currentIndex = finalMenuItem.findIndex((i) => i === date);
-    switch (true) {
-      // disable prev button if last record, last should never be a year
-      case currentIndex === finalMenuItem.length - 1: {
-        setNextDisabled(false);
-        setPrevDisabled(true);
-        break;
+  const navButtonState = useCallback(
+    (date: string): void => {
+      const currentIndex = finalMenuItem.findIndex((i) => i === date);
+      switch (true) {
+        // disable prev button if last record, last should never be a year
+        case currentIndex === finalMenuItem.length - 1: {
+          setNextDisabled(false);
+          setPrevDisabled(true);
+          break;
+        }
+        // disable next button if 2nd record, 1st should always be a year
+        case currentIndex === 1: {
+          setNextDisabled(true);
+          setPrevDisabled(false);
+          break;
+        }
+        // enable both next and prev button
+        default: {
+          setNextDisabled(false);
+          setPrevDisabled(false);
+          break;
+        }
       }
-      // disable next button if 2nd record, 1st should always be a year
-      case currentIndex === 1: {
-        setNextDisabled(true);
-        setPrevDisabled(false);
-        break;
-      }
-      // enable both next and prev button
-      default: {
-        setNextDisabled(false);
-        setPrevDisabled(false);
-        break;
-      }
-    }
-  };
+    },
+    [finalMenuItem]
+  );
 
   // get target date, next or previous function
   const getTargetDate = (prevDate = true): void => {
@@ -130,9 +134,7 @@ const MapDatepicker = ({
 
   useEffect(() => {
     navButtonState(mapDate);
-  }, [finalMenuItem]);
-
-  // const navColor = (disabled: boolean) => (disabled ? 'grey' : 'black');
+  }, [finalMenuItem, mapDate, navButtonState]);
 
   return (
     <div className="date-grid">

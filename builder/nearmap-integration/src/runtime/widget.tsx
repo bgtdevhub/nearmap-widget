@@ -12,7 +12,7 @@ import { Modal, ModalBody, ModalHeader, Alert, Switch } from 'jimu-ui';
 
 import MapDatepicker from './components/MapDatepicker';
 import CompareNearmapButton from './components/CompareNearmap';
-import { IMConfig, nearmapCoverage } from '../config';
+import { IMConfig, NearmapCoverage } from '../config';
 import {
   addSwipeLayer,
   generateTileID,
@@ -23,7 +23,7 @@ import {
 
 import './widget.css';
 
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useCallback } = React;
 
 const NO_KEY = 'API key not found';
 const NO_COVERAGE = 'You are not authorized to access this area';
@@ -55,7 +55,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [compare, setCompare] = useState(false);
   const [nmapActive, setNmapActive] = useState(false);
   const [nmapDisable, setNmapDisable] = useState(false);
-  const [errorMode, setErrorMode] = useState([]);
+  const [errorMode, setErrorMode] = useState(null);
 
   const swipeWidgetRef = useRef<Swipe>();
   const jmvObjRef = useRef(null);
@@ -71,26 +71,62 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     if (compare) handleCompare(false);
   };
 
+  // Taken from https://gist.github.com/stdavis/6e5c721d50401ddbf126
+  // By default ArcGIS SDK only goes to zoom level 19,
+  // In order to overcome this, we need to add more Level Of Detail (LOD) entries to
+  //  both the view and the web tile layer
+  const getLods = useCallback(() => {
+    const lods: LOD[] = [];
+    const initialResolution = earthCircumference / tilesize;
+    for (let zoom = nearmapMinZoom; zoom <= nearmapMaxZoom; zoom++) {
+      const resolution = initialResolution / Math.pow(2, zoom);
+      const scale = resolution * 96 * inchesPerMeter;
+      lods.push(
+        new LOD({
+          level: zoom,
+          scale,
+          resolution
+        })
+      );
+    }
+    return lods;
+  }, [
+    earthCircumference,
+    inchesPerMeter,
+    nearmapMaxZoom,
+    nearmapMinZoom,
+    tilesize
+  ]);
+
+  // Create a tileinfo instance with increased level of detail
+  // using the lod array we created earlier
+  // We need to use rows and cols (currently undocumented in https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-support-TileInfo.html)
+  // in addition to width and height properties
+  const tileInfo = new TileInfo({
+    dpi: 72,
+    format: 'jpg',
+    lods: getLods(),
+    origin: new Point({
+      x: -20037508.342787,
+      y: 20037508.342787
+    }),
+    spatialReference: SpatialReference.WebMercator,
+    size: [256, 256]
+  });
+
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
 
-    // const map = new Map();
-    // jmvObjRef.current.view.map = map;
     jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
     jmvObjRef.current.view.constraints = {
-      lods,
+      lods: getLods(),
       maxZoom: nearmapMaxZoom
     };
 
-    if (errorMode.length === 0) {
-      const nearmapSince = generateWebTileLayer(mapDate);
-      // add the layer to the view
-      jmvObjRef.current.view.map.add(nearmapSince);
-      // checkLayerViewError(nearmapSince);
-    }
-
     reactiveUtils.when(
-      () => jmvObjRef.current.view.stationary === true,
+      () =>
+        jmvObjRef.current.view.stationary === true ||
+        jmvObjRef.current.view.updating === false,
       () => {
         setLonLat([
           jmvObjRef.current.view.center.longitude,
@@ -105,40 +141,6 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         console.log('MapView is ready.');
       });
   };
-
-  // Taken from https://gist.github.com/stdavis/6e5c721d50401ddbf126
-  // By default ArcGIS SDK only goes to zoom level 19,
-  // In order to overcome this, we need to add more Level Of Detail (LOD) entries to
-  //  both the view and the web tile layer
-  const lods: LOD[] = [];
-  const initialResolution = earthCircumference / tilesize;
-  for (let zoom = nearmapMinZoom; zoom <= nearmapMaxZoom; zoom++) {
-    const resolution = initialResolution / Math.pow(2, zoom);
-    const scale = resolution * 96 * inchesPerMeter;
-    lods.push(
-      new LOD({
-        level: zoom,
-        scale,
-        resolution
-      })
-    );
-  }
-
-  // Create a tileinfo instance with increased level of detail
-  // using the lod array we created earlier
-  // We need to use rows and cols (currently undocumented in https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-support-TileInfo.html)
-  // in addition to width and height properties
-  const tileInfo = new TileInfo({
-    dpi: 72,
-    format: 'jpg',
-    lods,
-    origin: new Point({
-      x: -20037508.342787,
-      y: 20037508.342787
-    }),
-    spatialReference: SpatialReference.WebMercator,
-    size: [256, 256]
-  });
 
   // generate web tile layer
   const generateWebTileLayer = (
@@ -158,7 +160,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     });
 
     wtl.on('layerview-create-error', () => {
-      if (errorMode.length === 0) {
+      if (errorMode === null) {
         wtl.refresh();
       }
     });
@@ -166,37 +168,26 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     return wtl;
   };
 
-  // const checkLayerViewError = (weblayer: WebTileLayer) => {
-  //   jmvObjRef.current.view
-  //     .whenLayerView(weblayer)
-  //     .then(() => {
-  //       console.log('layer OK');
-  //       // console.log(res);
-  //     })
-  //     .catch((err) => {
-  //       console.log('layer is not OK!!!!!');
-  //       console.log(err.message, err.details.layer.id);
-  //     });
-  // };
-
   // sync date function for new date list
-  const syncDates = (nmDateList: string[]) => {
-    if (dateList.join() !== nmDateList.join()) {
-      setDateList(nmDateList);
-    }
-    if (!nmDateList.includes(mapDate)) {
-      setMapDate(nmDateList[0]);
-    }
-    if (!nmDateList.includes(compareDate)) {
-      setCompareDate(nmDateList[nmDateList.length - 1]);
-    }
-  };
+  const syncDates = useCallback(
+    (nmDateList: string[]) => {
+      if (dateList.join() !== nmDateList.join()) {
+        setDateList(nmDateList);
+      }
+      if (!nmDateList.includes(mapDate)) {
+        setMapDate(nmDateList[0]);
+      }
+      if (!nmDateList.includes(compareDate)) {
+        setCompareDate(nmDateList[nmDateList.length - 1]);
+      }
+    },
+    [compareDate, dateList, mapDate]
+  );
 
-  const checkErrorExist = (errorType: string) => {
-    if (!errorMode.includes(errorType)) {
-      setErrorMode([...errorMode, errorType]);
-    }
-    setNmapDisable(true);
+  const setDisable = (value: string) => {
+    const disabled = value !== null;
+    setErrorMode(value);
+    setNmapDisable(disabled);
   };
 
   // fetch list of capture date based on origin
@@ -212,17 +203,17 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         switch (true) {
           case data.error === NO_KEY:
           case data.error === NO_COVERAGE: {
-            checkErrorExist(data.error);
+            setDisable(data.error);
             break;
           }
           case data.surveys.length === 0: {
-            checkErrorExist(NO_DATE);
+            setDisable(NO_DATE);
             break;
           }
           default: {
-            setErrorMode([]);
+            setDisable(null);
             const nmDateList: string[] = data.surveys.map(
-              (d: nearmapCoverage) => d.captureDate
+              (d: NearmapCoverage) => d.captureDate
             );
             const finalDateList = [...new Set(nmDateList)];
             syncDates(finalDateList);
@@ -230,12 +221,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         }
       })
       .catch((err) => console.log(`nearmap coverage error: ${err}`));
-  }, [originZoom, lonLat, nApiKey]);
+  }, [coverageURL, lonLat, nApiKey, originZoom, syncDates]);
 
   // date change hook
   const useMapDate = (date: string, isCompare = false): void => {
     useEffect(() => {
-      if (errorMode.length === 0) {
+      if (errorMode === null) {
         const newMapLayer = generateWebTileLayer(date, isCompare);
         // put compare map at back
         const index = isCompare ? 0 : 1;
@@ -244,7 +235,6 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           newMapLayer.visible = false;
         }
         jmvObjRef.current.view.map.add(newMapLayer, index);
-        // checkLayerViewError(newMapLayer);
 
         if (swipeWidgetRef.current !== undefined) {
           addSwipeLayer(isCompare, newMapLayer, swipeWidgetRef.current);
@@ -261,7 +251,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           removeSwipeLayer(isCompare, swipeWidgetRef.current);
         }
       };
-    }, [date, errorMode.length]);
+    }, [date, isCompare]);
   };
 
   // compare date
@@ -271,24 +261,25 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   // compare function
   useEffect(() => {
-    if (errorMode.length === 0) {
-      if (compare) {
-        const nearmapLead = jmvObjRef.current.view.map.findLayerById(mapDate);
-        const [nearmapTrail] = jmvObjRef.current.view.map.layers.filter(
-          (cp: __esri.Layer) => cp.id.includes('compare')
-        );
-        nearmapTrail.visible = true;
-        // create a new Swipe widget
-        const swipe = new Swipe({
-          leadingLayers: [nearmapLead],
-          trailingLayers: [nearmapTrail],
-          position: 35, // set position of widget to 35%
-          view: jmvObjRef.current.view,
-          id: 'compare-swipe'
-        });
-        swipeWidgetRef.current = swipe;
-        jmvObjRef.current.view.ui.add(swipe);
-      }
+    if (errorMode === null && compare) {
+      console.log('add compare');
+      const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
+        (bs: __esri.Layer) => bs.id.includes('base-')
+      );
+      const [nearmapTrail] = jmvObjRef.current.view.map.layers.filter(
+        (cp: __esri.Layer) => cp.id.includes('compare')
+      );
+      nearmapTrail.visible = true;
+      // create a new Swipe widget
+      const swipe = new Swipe({
+        leadingLayers: [nearmapLead],
+        trailingLayers: [nearmapTrail],
+        position: 35, // set position of widget to 35%
+        view: jmvObjRef.current.view,
+        id: 'compare-swipe'
+      });
+      swipeWidgetRef.current = swipe;
+      jmvObjRef.current.view.ui.add(swipe);
     }
     return () => {
       const [nearmapTrail]: any = jmvObjRef.current.view.map.layers.filter(
@@ -299,11 +290,13 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         swipeWidgetRef.current.destroy();
       }
     };
-  }, [compare, errorMode.length]);
+  }, [compare, errorMode]);
 
   useEffect(() => {
-    const nearmapLead = jmvObjRef.current.view.map.findLayerById(mapDate);
-    nearmapLead.visible = nmapActive;
+    const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
+      (bs: __esri.Layer) => bs.id.includes('base-')
+    );
+    if (nearmapLead) nearmapLead.visible = nmapActive;
   }, [nmapActive, mapDate]);
 
   return (
@@ -330,11 +323,13 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           {!nmapDisable &&
             nmapActive && [
               <MapDatepicker
+                key="mapDatePicker"
                 mapDate={mapDate}
                 setMapDate={setMapDate}
                 dateList={dateList}
               />,
               <CompareNearmapButton
+                key="compareNearmapButton"
                 compare={compare}
                 set={handleCompare}
                 disabled={!nmapActive}
@@ -350,9 +345,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         </div>
       )}
       <div>
-        <Modal
-          isOpen={jmvObjRef.current === null || errorMode.includes(NO_KEY)}
-        >
+        <Modal isOpen={jmvObjRef.current === null || errorMode === NO_KEY}>
           <ModalHeader>Valid Nearmap API Key Required</ModalHeader>
           <ModalBody>
             Kindly check the following items in Nearmap widget settings
@@ -368,7 +361,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           // closable
           form="basic"
           onClose={() => {}}
-          open={errorMode.includes(NO_COVERAGE)}
+          open={errorMode === NO_COVERAGE}
           text="No Nearmap imagery found for this area. Try another area"
           type="info"
           withIcon

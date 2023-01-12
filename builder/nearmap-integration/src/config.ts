@@ -16,7 +16,7 @@ export interface Config {
   inchesPerMeter: number;
 }
 
-export interface nearmapCoverage {
+export interface NearmapCoverage {
   captureDate: string;
 }
 

@@ -4,7 +4,7 @@ import { Button, Icon } from 'jimu-ui';
 import CompareIcon from '../../asset/compare_black_24dp.svg';
 import './index.css';
 
-interface compareProps {
+interface CompareProps {
   compare: boolean;
   set: any;
   disabled: boolean;
@@ -14,7 +14,7 @@ const CompareNearmapButton = ({
   compare,
   set,
   disabled
-}: compareProps): JSX.Element => {
+}: CompareProps): JSX.Element => {
   return (
     <div className="compare-grid">
       <Button
