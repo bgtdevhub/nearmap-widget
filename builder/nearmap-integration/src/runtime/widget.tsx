@@ -60,6 +60,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const swipeWidgetRef = useRef<Swipe>();
   const jmvObjRef = useRef(null);
   const compareRef = useRef(false);
+  const nmapActiveRef = useRef(false);
 
   const handleCompare = (value: boolean): void => {
     setCompare(value);
@@ -67,6 +68,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   };
 
   const handleNmapActive = (): void => {
+    nmapActiveRef.current = !nmapActive;
     setNmapActive(!nmapActive);
     handleCompare(false);
   };
@@ -159,14 +161,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   );
 
   const loadMapTask = useCallback(
-    (isCompare: boolean): void => {
+    (date: string, isCompare: boolean): void => {
       if (errorMode === null) {
-        const date = isCompare ? compareDate : mapDate;
         const newMapLayer = generateWebTileLayer(date, isCompare);
-        // put compare map at back
-        // const index = isCompare ? 0 : 1;
         // set compare map visibility to false when compare is false
-        if ((!compareRef.current && isCompare) || !nmapActive) {
+        if ((!compareRef.current && isCompare) || !nmapActiveRef.current) {
           newMapLayer.visible = false;
         }
         jmvObjRef.current.view.map.add(newMapLayer, 0);
@@ -176,7 +175,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         }
       }
     },
-    [compareDate, errorMode, generateWebTileLayer, mapDate, nmapActive]
+    [errorMode, generateWebTileLayer]
   );
 
   const mapCleanupTask = useCallback((isCompare: boolean): void => {
@@ -269,21 +268,19 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   // map date hook
   useEffect(() => {
-    loadMapTask(false);
-
+    loadMapTask(mapDate, false);
     return () => {
       mapCleanupTask(false);
     };
-  }, [loadMapTask, mapCleanupTask]);
+  }, [loadMapTask, mapCleanupTask, mapDate]);
 
   // compare date hook
   useEffect(() => {
-    loadMapTask(true);
-
+    loadMapTask(compareDate, true);
     return () => {
       mapCleanupTask(true);
     };
-  }, [loadMapTask, mapCleanupTask]);
+  }, [compareDate, loadMapTask, mapCleanupTask]);
 
   // compare function
   useEffect(() => {
