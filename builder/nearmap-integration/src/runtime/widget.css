@@ -36,6 +36,12 @@ body,
   padding-top: 8.5px;
 }
 
+.alert-box {
+  text-align: -webkit-center;
+  text-align: -moz-center;
+  margin-bottom: 5px;
+}
+
 @media screen and (max-width: 480px) {
   .grid-nav {
     display: grid;

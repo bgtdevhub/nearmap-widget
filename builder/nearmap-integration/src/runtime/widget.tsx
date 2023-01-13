@@ -26,7 +26,7 @@ import './widget.css';
 const { useState, useEffect, useRef, useCallback } = React;
 
 const NO_KEY = 'API key not found';
-const NO_COVERAGE = 'You are not authorized to access this area';
+const NO_AUTHORIZE = 'You are not authorized to access this area';
 const NO_DATE = 'No Datelist Found';
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
@@ -68,7 +68,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   const handleNmapActive = (): void => {
     setNmapActive(!nmapActive);
-    if (compare) handleCompare(false);
+    handleCompare(false);
   };
 
   // Taken from https://gist.github.com/stdavis/6e5c721d50401ddbf126
@@ -102,17 +102,94 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   // using the lod array we created earlier
   // We need to use rows and cols (currently undocumented in https://developers.arcgis.com/javascript/latest/api-reference/esri-layers-support-TileInfo.html)
   // in addition to width and height properties
-  const tileInfo = new TileInfo({
-    dpi: 72,
-    format: 'jpg',
-    lods: getLods(),
-    origin: new Point({
-      x: -20037508.342787,
-      y: 20037508.342787
-    }),
-    spatialReference: SpatialReference.WebMercator,
-    size: [256, 256]
-  });
+  const getTileInfo = useCallback(() => {
+    const tileInfo = new TileInfo({
+      dpi: 72,
+      format: 'jpg',
+      lods: getLods(),
+      origin: new Point({
+        x: -20037508.342787,
+        y: 20037508.342787
+      }),
+      spatialReference: SpatialReference.WebMercator,
+      size: [256, 256]
+    });
+    return tileInfo;
+  }, [getLods]);
+
+  // generate web tile layer
+  const generateWebTileLayer = useCallback(
+    (date: string, isCompare = false): WebTileLayer => {
+      const id = generateTileID(date, isCompare);
+      // Create a WebTileLayer for Nearmap imagery.
+      // We are using tileinfo we created earlier.
+      const wtl = new WebTileLayer({
+        urlTemplate: `${tileURL}/${direction}/{level}/{col}/{row}.img?apikey=${nApiKey}&until=${date}`,
+        copyright: 'Nearmap',
+        tileInfo: getTileInfo(),
+        title: `Nearmap for ${id}`,
+        opacity,
+        // blendMode,
+        id
+      });
+
+      wtl.on('layerview-create-error', () => {
+        wtl.refresh();
+      });
+
+      return wtl;
+    },
+    [direction, getTileInfo, nApiKey, opacity, tileURL]
+  );
+
+  // sync date function for new date list
+  const syncDates = useCallback(
+    (nmDateList: string[]) => {
+      if (dateList.join() !== nmDateList.join()) {
+        setDateList(nmDateList);
+      }
+      if (!nmDateList.includes(mapDate)) {
+        setMapDate(nmDateList[0]);
+      }
+      if (!nmDateList.includes(compareDate)) {
+        setCompareDate(nmDateList[nmDateList.length - 1]);
+      }
+    },
+    [compareDate, dateList, mapDate]
+  );
+
+  const loadMapTask = useCallback(
+    (isCompare: boolean): void => {
+      if (errorMode === null) {
+        const date = isCompare ? compareDate : mapDate;
+        const newMapLayer = generateWebTileLayer(date, isCompare);
+        // put compare map at back
+        // const index = isCompare ? 0 : 1;
+        // set compare map visibility to false when compare is false
+        if ((!compareRef.current && isCompare) || !nmapActive) {
+          newMapLayer.visible = false;
+        }
+        jmvObjRef.current.view.map.add(newMapLayer, 0);
+
+        if (swipeWidgetRef.current !== undefined) {
+          addSwipeLayer(isCompare, newMapLayer, swipeWidgetRef.current);
+        }
+      }
+    },
+    [compareDate, errorMode, generateWebTileLayer, mapDate, nmapActive]
+  );
+
+  const mapCleanupTask = useCallback((isCompare: boolean): void => {
+    const oldId = isCompare ? 'compare-' : 'base-';
+    const oldLayers: any = jmvObjRef.current.view.map.layers.filter(
+      (y: __esri.Layer) => y.id.includes(oldId)
+    );
+    jmvObjRef.current.view.map.removeMany(oldLayers);
+
+    if (swipeWidgetRef.current !== undefined) {
+      removeSwipeLayer(isCompare, swipeWidgetRef.current);
+    }
+  }, []);
 
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
@@ -142,67 +219,31 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       });
   };
 
-  // generate web tile layer
-  const generateWebTileLayer = (
-    date: string,
-    isCompare = false
-  ): WebTileLayer => {
-    const id = generateTileID(date, isCompare);
-    // Create a WebTileLayer for Nearmap imagery.
-    // We are using tileinfo we created earlier.
-    const wtl = new WebTileLayer({
-      urlTemplate: `${tileURL}/${direction}/{level}/{col}/{row}.img?apikey=${nApiKey}&until=${date}`,
-      copyright: 'Nearmap',
-      tileInfo,
-      title: `Nearmap for ${id}`,
-      opacity,
-      id
-    });
-
-    wtl.on('layerview-create-error', () => {
-      if (errorMode === null) {
-        wtl.refresh();
-      }
-    });
-
-    return wtl;
-  };
-
-  // sync date function for new date list
-  const syncDates = useCallback(
-    (nmDateList: string[]) => {
-      if (dateList.join() !== nmDateList.join()) {
-        setDateList(nmDateList);
-      }
-      if (!nmDateList.includes(mapDate)) {
-        setMapDate(nmDateList[0]);
-      }
-      if (!nmDateList.includes(compareDate)) {
-        setCompareDate(nmDateList[nmDateList.length - 1]);
-      }
-    },
-    [compareDate, dateList, mapDate]
-  );
-
-  const setDisable = (value: string) => {
-    const disabled = value !== null;
-    setErrorMode(value);
-    setNmapDisable(disabled);
-  };
-
   // fetch list of capture date based on origin
   useEffect(() => {
     const originLon = lon2tile(lonLat[0], originZoom);
     const originLat = lat2tile(lonLat[1], originZoom);
 
+    const setDisable = (value: string) => {
+      const disabled = value !== null;
+      setErrorMode(value);
+      setNmapDisable(disabled);
+      if (disabled) {
+        setNmapActive(!disabled);
+        handleCompare(!disabled);
+      }
+    };
+
     fetch(
       `${coverageURL}/${originZoom}/${originLon}/${originLat}?apikey=${nApiKey}&limit=500`
     )
-      .then(async (response) => await response.json())
+      .then(async (response) => {
+        if (response.status === 200) return response.json();
+      })
       .then((data) => {
         switch (true) {
           case data.error === NO_KEY:
-          case data.error === NO_COVERAGE: {
+          case data.error === NO_AUTHORIZE: {
             setDisable(data.error);
             break;
           }
@@ -217,52 +258,36 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             );
             const finalDateList = [...new Set(nmDateList)];
             syncDates(finalDateList);
+            break;
           }
         }
       })
-      .catch((err) => console.log(`nearmap coverage error: ${err}`));
+      .catch((err) => {
+        console.log(`nearmap coverage error: ${err}`);
+      });
   }, [coverageURL, lonLat, nApiKey, originZoom, syncDates]);
 
-  // date change hook
-  const useMapDate = (date: string, isCompare = false): void => {
-    useEffect(() => {
-      if (errorMode === null) {
-        const newMapLayer = generateWebTileLayer(date, isCompare);
-        // put compare map at back
-        const index = isCompare ? 0 : 1;
-        // set compare map visibility to false when compare is false
-        if (!compareRef.current && isCompare) {
-          newMapLayer.visible = false;
-        }
-        jmvObjRef.current.view.map.add(newMapLayer, index);
+  // map date hook
+  useEffect(() => {
+    loadMapTask(false);
 
-        if (swipeWidgetRef.current !== undefined) {
-          addSwipeLayer(isCompare, newMapLayer, swipeWidgetRef.current);
-        }
-      }
+    return () => {
+      mapCleanupTask(false);
+    };
+  }, [loadMapTask, mapCleanupTask]);
 
-      return () => {
-        const oldLayers: any = jmvObjRef.current.view.map.layers.filter(
-          (y: __esri.Layer) => y.id === generateTileID(date, isCompare)
-        );
-        jmvObjRef.current.view.map.removeMany(oldLayers);
+  // compare date hook
+  useEffect(() => {
+    loadMapTask(true);
 
-        if (swipeWidgetRef.current !== undefined) {
-          removeSwipeLayer(isCompare, swipeWidgetRef.current);
-        }
-      };
-    }, [date, isCompare]);
-  };
-
-  // compare date
-  useMapDate(compareDate, true);
-  // map date
-  useMapDate(mapDate);
+    return () => {
+      mapCleanupTask(true);
+    };
+  }, [loadMapTask, mapCleanupTask]);
 
   // compare function
   useEffect(() => {
     if (errorMode === null && compare) {
-      console.log('add compare');
       const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
         (bs: __esri.Layer) => bs.id.includes('base-')
       );
@@ -292,6 +317,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     };
   }, [compare, errorMode]);
 
+  // set map visibility
   useEffect(() => {
     const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
       (bs: __esri.Layer) => bs.id.includes('base-')
@@ -307,11 +333,24 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           onActiveViewChange={activeViewChangeHandler}
         />
       )}
+      <div className="alert-box">
+        <Alert
+          // closable
+          form="basic"
+          onClose={() => {}}
+          open={errorMode === NO_DATE || errorMode === NO_AUTHORIZE}
+          text={errorMode}
+          type="info"
+          withIcon
+        />
+      </div>
       {jmvObjRef && (
         <div className="grid-nav">
           <div
             className={
-              nmapActive ? 'nmapactive-button' : 'nmapactive-button-alt'
+              !nmapActive || errorMode !== null
+                ? 'nmapactive-button-alt'
+                : 'nmapactive-button'
             }
           >
             <Switch
@@ -355,18 +394,6 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             </ul>
           </ModalBody>
         </Modal>
-      </div>
-      <div>
-        <Alert
-          // closable
-          form="basic"
-          onClose={() => {}}
-          open={errorMode === NO_COVERAGE}
-          text="No Nearmap imagery found for this area. Try another area"
-          type="info"
-          withIcon
-          style={{ width: '420px' }}
-        />
       </div>
     </div>
   );
