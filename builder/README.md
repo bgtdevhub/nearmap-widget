@@ -21,6 +21,7 @@ npm install
 
 ### Recommended placement in style
 
+- Attached to a map widget
 - Width : auto
 - Height : auto
 - Snap to bottom

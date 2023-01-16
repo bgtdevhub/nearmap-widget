@@ -8,7 +8,7 @@ import SpatialReference from 'esri/geometry/SpatialReference';
 import Point from 'esri/geometry/Point';
 import Swipe from 'esri/widgets/Swipe';
 import reactiveUtils from 'esri/core/reactiveUtils';
-import { Modal, ModalBody, ModalHeader, Alert, Switch } from 'jimu-ui';
+import { Modal, ModalBody, ModalHeader, Alert, Switch, Loading } from 'jimu-ui';
 
 import MapDatepicker from './components/MapDatepicker';
 import CompareNearmapButton from './components/CompareNearmap';
@@ -162,7 +162,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   const loadMapTask = useCallback(
     (date: string, isCompare: boolean): void => {
-      if (errorMode === null) {
+      if (errorMode === null && jmvObjRef.current !== null) {
         const newMapLayer = generateWebTileLayer(date, isCompare);
         // set compare map visibility to false when compare is false
         if ((!compareRef.current && isCompare) || !nmapActiveRef.current) {
@@ -179,14 +179,16 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   );
 
   const mapCleanupTask = useCallback((isCompare: boolean): void => {
-    const oldId = isCompare ? 'compare-' : 'base-';
-    const oldLayers: any = jmvObjRef.current.view.map.layers.filter(
-      (y: __esri.Layer) => y.id.includes(oldId)
-    );
-    jmvObjRef.current.view.map.removeMany(oldLayers);
+    if (jmvObjRef.current !== null) {
+      const oldId = isCompare ? 'compare-' : 'base-';
+      const oldLayers: any = jmvObjRef.current.view.map.layers.filter(
+        (y: __esri.Layer) => y.id.includes(oldId)
+      );
+      jmvObjRef.current.view.map.removeMany(oldLayers);
 
-    if (swipeWidgetRef.current !== undefined) {
-      removeSwipeLayer(isCompare, swipeWidgetRef.current);
+      if (swipeWidgetRef.current !== undefined) {
+        removeSwipeLayer(isCompare, swipeWidgetRef.current);
+      }
     }
   }, []);
 
@@ -228,8 +230,8 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       setErrorMode(value);
       setNmapDisable(disabled);
       if (disabled) {
-        setNmapActive(!disabled);
-        handleCompare(!disabled);
+        setNmapActive(false);
+        handleCompare(false);
       }
     };
 
@@ -316,10 +318,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   // set map visibility
   useEffect(() => {
-    const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
-      (bs: __esri.Layer) => bs.id.includes('base-')
-    );
-    if (nearmapLead) nearmapLead.visible = nmapActive;
+    if (jmvObjRef.current !== null) {
+      const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
+        (bs: __esri.Layer) => bs.id.includes('base-')
+      );
+      if (nearmapLead) nearmapLead.visible = nmapActive;
+    }
   }, [nmapActive, mapDate]);
 
   return (
@@ -341,7 +345,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           withIcon
         />
       </div>
-      {jmvObjRef && (
+      {jmvObjRef.current !== null && (
         <div className="grid-nav">
           <div
             className={
@@ -381,7 +385,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         </div>
       )}
       <div>
-        <Modal isOpen={jmvObjRef.current === null || errorMode === NO_KEY}>
+        <Modal isOpen={errorMode === NO_KEY}>
           <ModalHeader>Valid Nearmap API Key Required</ModalHeader>
           <ModalBody>
             Kindly check the following items in Nearmap widget settings
@@ -392,6 +396,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           </ModalBody>
         </Modal>
       </div>
+      {jmvObjRef.current === null && (
+        <div>
+          <Loading />
+        </div>
+      )}
     </div>
   );
 };

@@ -21,6 +21,7 @@ https://bgtdevhub.github.io/nearmap-widget/enterprise/nearmap-integration/manife
 
 ### Recommended placement in style
 
+- Attached to a map widget
 - Width : auto
 - Height : auto
 - Snap to bottom
