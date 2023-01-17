@@ -68,9 +68,10 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [errorMode, setErrorMode] = useState(null);
 
   const swipeWidgetRef = useRef<Swipe>();
-  const jmvObjRef = useRef(null);
+  const jmvObjRef = useRef<JimuMapView>(null);
   const compareRef = useRef(false);
   const nmapActiveRef = useRef(false);
+  const searchRef = useRef<__esri.Widget>();
 
   const handleCompare = (value: boolean): void => {
     setCompare(value);
@@ -213,8 +214,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
     reactiveUtils.when(
       () =>
-        jmvObjRef.current.view.stationary === true ||
-        jmvObjRef.current.view.updating === false,
+        jmvObjRef.current.view.stationary || !jmvObjRef.current.view.updating,
       () => {
         setLonLat([
           jmvObjRef.current.view.center.longitude,
@@ -310,7 +310,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         leadingLayers: [nearmapLead],
         trailingLayers: [nearmapTrail],
         position: 35, // set position of widget to 35%
-        view: jmvObjRef.current.view,
+        view: jmvObjRef.current.view as __esri.MapView,
         id: 'compare-swipe'
       });
       swipeWidgetRef.current = swipe;
@@ -336,6 +336,21 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       if (nearmapLead) nearmapLead.visible = nmapActive;
     }
   }, [nmapActive, mapDate]);
+
+  // searchRef handling for map widget built in search
+  if (jmvObjRef.current !== null && searchRef.current === undefined) {
+    const searchObject = jmvObjRef.current.jimuMapTools.filter(
+      (j) => j.name === 'Search'
+    );
+    if (searchObject.length !== 0) {
+      searchRef.current = searchObject[0].instance;
+      jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
+
+      searchRef.current.on('select-result', () => {
+        jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
+      });
+    }
+  }
 
   return (
     <div className="jimu-widget">
@@ -418,7 +433,10 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       <div>
         <Modal isOpen={errorMode === TIMEOUT}>
           <ModalHeader>Error</ModalHeader>
-          <ModalBody>{errorMode}</ModalBody>
+          <ModalBody>
+            {errorMode}
+            Please refresh the page
+          </ModalBody>
         </Modal>
       </div>
       {jmvObjRef.current === null && (
