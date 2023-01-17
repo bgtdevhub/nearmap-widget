@@ -14,6 +14,7 @@ export interface Config {
   tilesize: number;
   earthCircumference: number;
   inchesPerMeter: number;
+  initialNmapActive: boolean;
 }
 
 export interface NearmapCoverage {

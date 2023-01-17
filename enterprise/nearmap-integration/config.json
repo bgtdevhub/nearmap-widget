@@ -11,5 +11,6 @@
   "opacity": 1,
   "tilesize": 256,
   "earthCircumference": 40075016.685568,
-  "inchesPerMeter": 39.37
+  "inchesPerMeter": 39.37,
+  "initialNmapActive": false
 }

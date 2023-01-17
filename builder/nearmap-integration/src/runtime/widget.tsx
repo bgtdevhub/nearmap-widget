@@ -8,7 +8,15 @@ import SpatialReference from 'esri/geometry/SpatialReference';
 import Point from 'esri/geometry/Point';
 import Swipe from 'esri/widgets/Swipe';
 import reactiveUtils from 'esri/core/reactiveUtils';
-import { Modal, ModalBody, ModalHeader, Alert, Switch, Loading } from 'jimu-ui';
+import {
+  Modal,
+  ModalBody,
+  ModalHeader,
+  Alert,
+  Switch,
+  Loading,
+  Tooltip
+} from 'jimu-ui';
 
 import MapDatepicker from './components/MapDatepicker';
 import CompareNearmapButton from './components/CompareNearmap';
@@ -28,6 +36,7 @@ const { useState, useEffect, useRef, useCallback } = React;
 const NO_KEY = 'API key not found';
 const NO_AUTHORIZE = 'You are not authorized to access this area';
 const NO_DATE = 'No Datelist Found';
+const TIMEOUT = 'Something wrong happened';
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
   // User Input Parameters
@@ -45,7 +54,8 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     opacity, // Range of 0.1 to 1.0
     tilesize,
     earthCircumference,
-    inchesPerMeter
+    inchesPerMeter,
+    initialNmapActive
   } = props.config;
 
   const [mapDate, setMapDate] = useState(dateToday);
@@ -53,7 +63,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [lonLat, setLonLat] = useState([originLongitude, originLatitude]);
   const [compareDate, setCompareDate] = useState(dateToday);
   const [compare, setCompare] = useState(false);
-  const [nmapActive, setNmapActive] = useState(false);
+  const [nmapActive, setNmapActive] = useState(initialNmapActive);
   const [nmapDisable, setNmapDisable] = useState(false);
   const [errorMode, setErrorMode] = useState(null);
 
@@ -195,7 +205,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
 
-    jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
+    jmvObjRef.current.view.zoom = originZoom;
     jmvObjRef.current.view.constraints = {
       lods: getLods(),
       maxZoom: nearmapMaxZoom
@@ -239,7 +249,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       `${coverageURL}/${originZoom}/${originLon}/${originLat}?apikey=${nApiKey}&limit=500`
     )
       .then(async (response) => {
-        if (response.status === 200) return response.json();
+        return response.json();
       })
       .then((data) => {
         switch (true) {
@@ -265,6 +275,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       })
       .catch((err) => {
         console.log(`nearmap coverage error: ${err}`);
+        setDisable(TIMEOUT);
       });
   }, [coverageURL, lonLat, nApiKey, originZoom, syncDates]);
 
@@ -347,19 +358,27 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       </div>
       {jmvObjRef.current !== null && (
         <div className="grid-nav">
-          <div
-            className={
-              !nmapActive || errorMode !== null
-                ? 'nmapactive-button-alt'
-                : 'nmapactive-button'
-            }
+          <Tooltip
+            placement="top"
+            showArrow
+            enterDelay={500}
+            title="Activate Nearmap"
           >
-            <Switch
-              checked={nmapActive}
-              disabled={nmapDisable}
-              onChange={handleNmapActive}
-            />
-          </div>
+            <div
+              className={
+                !nmapActive || errorMode !== null
+                  ? 'nmapactive-button-alt'
+                  : 'nmapactive-button'
+              }
+            >
+              <Switch
+                aria-label="Activate Nearmap"
+                checked={nmapActive}
+                disabled={nmapDisable}
+                onChange={handleNmapActive}
+              />
+            </div>
+          </Tooltip>
           {!nmapDisable &&
             nmapActive && [
               <MapDatepicker
@@ -394,6 +413,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
               <li>A valid Nearmap API Key has been entered</li>
             </ul>
           </ModalBody>
+        </Modal>
+      </div>
+      <div>
+        <Modal isOpen={errorMode === TIMEOUT}>
+          <ModalHeader>Error</ModalHeader>
+          <ModalBody>{errorMode}</ModalBody>
         </Modal>
       </div>
       {jmvObjRef.current === null && (
