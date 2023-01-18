@@ -344,7 +344,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   }, [nmapActive, mapDate]);
 
   if (jmvObjRef.current !== null) {
-    console.log(jmvObjRef.current.jimuMapTools);
+    console.log(jmvObjRef.current);
     console.log(searchRef.current);
   }
 
