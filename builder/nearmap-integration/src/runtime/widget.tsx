@@ -246,7 +246,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       setErrorMode(value);
       setNmapDisable(disabled);
       if (disabled) {
-        setNmapActive(false);
+        if (value !== TIMEOUT) setNmapActive(false);
         handleCompare(false);
       }
     };
@@ -342,6 +342,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       if (nearmapLead) nearmapLead.visible = nmapActive;
     }
   }, [nmapActive, mapDate]);
+
+  if (jmvObjRef.current !== null) {
+    console.log(jmvObjRef.current.jimuMapTools);
+    console.log(searchRef.current);
+  }
 
   // searchRef handling for map widget built in search
   if (
