@@ -30,9 +30,9 @@ export const addSwipeLayer = (
   swipe: __esri.Swipe
 ): void => {
   if (isCompare) {
-    swipe.trailingLayers.add(layer);
+    if (swipe.trailingLayers) swipe.trailingLayers.add(layer);
   } else {
-    swipe.leadingLayers.add(layer);
+    if (swipe.leadingLayers) swipe.leadingLayers.add(layer);
   }
 };
 
@@ -42,22 +42,8 @@ export const removeSwipeLayer = (
   swipe: __esri.Swipe
 ): void => {
   if (isCompare) {
-    swipe.trailingLayers.removeAll();
+    if (swipe.trailingLayers) swipe.trailingLayers.removeAll();
   } else {
-    swipe.leadingLayers.removeAll();
+    if (swipe.leadingLayers) swipe.leadingLayers.removeAll();
   }
 };
-
-// zoom levels here start from 12 up to 20
-// based on https://developers.arcgis.com/documentation/mapping-apis-and-services/reference/zoom-levels-and-scale/
-export const zoomLevels = [
-  'Cities', // 12
-  'City', // 13
-  'Town', //14
-  'Neighborhood', //15
-  'Streets', // 16
-  'City block', // 17
-  'Buildings', // 18
-  'Building', // 19
-  'Houses' // 20
-];

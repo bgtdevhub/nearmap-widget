@@ -66,6 +66,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [nmapActive, setNmapActive] = useState(initialNmapActive);
   const [nmapDisable, setNmapDisable] = useState(false);
   const [errorMode, setErrorMode] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(originZoom);
 
   const swipeWidgetRef = useRef<Swipe>();
   const jmvObjRef = useRef<JimuMapView>(null);
@@ -206,7 +207,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
     jmvObjRef.current = jmvObj;
 
-    jmvObjRef.current.view.zoom = originZoom;
+    if (jmvObjRef.current.view.zoom <= nearmapMinZoom) {
+      jmvObjRef.current.view.zoom = zoomLevel;
+    } else {
+      setZoomLevel(jmvObjRef.current.view.zoom);
+    }
+
     jmvObjRef.current.view.constraints = {
       lods: getLods(),
       maxZoom: nearmapMaxZoom
@@ -232,8 +238,8 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   // fetch list of capture date based on origin
   useEffect(() => {
-    const originLon = lon2tile(lonLat[0], originZoom);
-    const originLat = lat2tile(lonLat[1], originZoom);
+    const originLon = lon2tile(lonLat[0], zoomLevel);
+    const originLat = lat2tile(lonLat[1], zoomLevel);
 
     const setDisable = (value: string) => {
       const disabled = value !== null;
@@ -246,7 +252,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     };
 
     fetch(
-      `${coverageURL}/${originZoom}/${originLon}/${originLat}?apikey=${nApiKey}&limit=500`
+      `${coverageURL}/${zoomLevel}/${originLon}/${originLat}?apikey=${nApiKey}&limit=500`
     )
       .then(async (response) => {
         return response.json();
@@ -277,7 +283,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         console.log(`nearmap coverage error: ${err}`);
         setDisable(TIMEOUT);
       });
-  }, [coverageURL, lonLat, nApiKey, originZoom, syncDates]);
+  }, [coverageURL, lonLat, nApiKey, originZoom, syncDates, zoomLevel]);
 
   // map date hook
   useEffect(() => {
@@ -343,16 +349,15 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     Array.isArray(jmvObjRef.current.jimuMapTools) &&
     searchRef.current === undefined
   ) {
-    console.log(jmvObjRef.current.jimuMapTools);
     const searchObject = jmvObjRef.current.jimuMapTools.filter(
       (j) => j.name === 'Search'
     );
     if (searchObject.length !== 0) {
       searchRef.current = searchObject[0].instance;
-      jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
+      jmvObjRef.current.view.zoom = zoomLevel - nearmapMinZoom;
 
       searchRef.current.on('select-result', () => {
-        jmvObjRef.current.view.zoom = originZoom - nearmapMinZoom;
+        jmvObjRef.current.view.zoom = zoomLevel - nearmapMinZoom;
       });
     }
   }

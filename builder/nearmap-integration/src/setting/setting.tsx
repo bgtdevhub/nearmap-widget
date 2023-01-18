@@ -7,7 +7,6 @@ import {
   SettingRow
 } from 'jimu-ui/advanced/setting-components';
 import { IMConfig } from '../config';
-import { zoomLevels } from '../runtime/components/Utils';
 
 const Setting = (props: AllWidgetSettingProps<IMConfig>) => {
   const propChange = (obj: string, value: any) => {
@@ -57,31 +56,6 @@ const Setting = (props: AllWidgetSettingProps<IMConfig>) => {
             onChange={(e) => propChange('opacity', e.target.value)}
             step={0.1}
           />
-        </SettingRow>
-      </SettingSection>
-      <SettingSection title="Nearmap Origin Zoom">
-        <SettingRow>
-          <Slider
-            aria-label="Nearmap Origin Zoom"
-            defaultValue={props.config.originZoom}
-            max={20}
-            min={12}
-            onChange={(e) => propChange('originZoom', e.target.value)}
-            step={1}
-          />
-        </SettingRow>
-        <SettingRow>
-          <table className="w-100 text-center" style={{ tableLayout: 'fixed' }}>
-            <tr>
-              <td>Zoom Level:</td>
-              <td>
-                <strong>{props.config.originZoom}</strong>
-              </td>
-              <td>
-                <strong>{zoomLevels[props.config.originZoom - 12]}</strong>
-              </td>
-            </tr>
-          </table>
         </SettingRow>
       </SettingSection>
       <SettingSection>
