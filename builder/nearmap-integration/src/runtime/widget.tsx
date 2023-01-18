@@ -338,7 +338,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   }, [nmapActive, mapDate]);
 
   // searchRef handling for map widget built in search
-  if (jmvObjRef.current !== null && searchRef.current === undefined) {
+  if (
+    jmvObjRef.current !== null &&
+    Array.isArray(jmvObjRef.current.jimuMapTools) &&
+    searchRef.current === undefined
+  ) {
+    console.log(jmvObjRef.current.jimuMapTools);
     const searchObject = jmvObjRef.current.jimuMapTools.filter(
       (j) => j.name === 'Search'
     );
