@@ -14,14 +14,22 @@ npm install
 4. Create a new experience and load the following widgets as a start
    - Map
    - Nearmap Integration
+   - Search Widget (recommended)
+     - Refer [here](https://developers.arcgis.com/experience-builder/guide/search-widget/) for guide
 5. Go to Nearmap Integration settings and perform the following actions
    - Select map
    - Enter Nearmap API Key
 6. Save the map and preview
 
-### Recommended placement in style
+## Recommended usage
 
-- Attached to a map widget (use built-in search widget)
+### General
+
+- Attached to a map widget
+- Use search widget instead of built-in search in map widget for better flexibility
+
+### Style
+
 - Width : auto
 - Height : auto
 - Snap to bottom
