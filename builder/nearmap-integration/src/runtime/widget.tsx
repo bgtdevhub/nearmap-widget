@@ -191,9 +191,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const mapCleanupTask = useCallback((isCompare: boolean): void => {
     if (jmvObjRef.current !== null) {
       const oldId = isCompare ? 'compare-' : 'base-';
-      const oldLayers: any = jmvObjRef.current.view.map.layers.filter(
-        (y: __esri.Layer) => y.id.includes(oldId)
-      );
+      const oldLayers: __esri.Layer[] | undefined =
+        jmvObjRef.current.view.map.layers
+          .filter((y: __esri.Layer) => y.id.includes(oldId))
+          .toArray();
+
       jmvObjRef.current.view.map.removeMany(oldLayers);
 
       if (swipeWidgetRef.current !== undefined) {
@@ -299,13 +301,17 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   // compare function
   useEffect(() => {
     if (errorMode === null && compare) {
-      const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
-        (bs: __esri.Layer) => bs.id.includes('base-')
-      );
-      const [nearmapTrail] = jmvObjRef.current.view.map.layers.filter(
-        (cp: __esri.Layer) => cp.id.includes('compare')
-      );
-      nearmapTrail.visible = true;
+      const nearmapLead: __esri.Layer | undefined =
+        jmvObjRef.current.view.map.layers
+          .filter((bs) => bs.id.includes('base-'))
+          .at(0);
+      const nearmapTrail: __esri.Layer | undefined =
+        jmvObjRef.current.view.map.layers
+          .filter((cp) => cp.id.includes('compare'))
+          .at(0);
+
+      if (nearmapTrail !== undefined) nearmapTrail.visible = true;
+
       // create a new Swipe widget
       const swipe = new Swipe({
         leadingLayers: [nearmapLead],
@@ -314,13 +320,16 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         view: jmvObjRef.current.view as __esri.MapView,
         id: 'compare-swipe'
       });
+
       swipeWidgetRef.current = swipe;
       jmvObjRef.current.view.ui.add(swipe);
     }
     return () => {
-      const [nearmapTrail]: any = jmvObjRef.current.view.map.layers.filter(
-        (cp: __esri.Layer) => cp.id.includes('compare')
-      );
+      const nearmapTrail: __esri.Layer | undefined =
+        jmvObjRef.current.view.map.layers
+          .filter((cp: __esri.Layer) => cp.id.includes('compare'))
+          .at(0);
+
       if (nearmapTrail !== undefined) nearmapTrail.visible = false;
       if (swipeWidgetRef.current !== undefined) {
         swipeWidgetRef.current.destroy();
@@ -331,10 +340,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   // set map visibility
   useEffect(() => {
     if (jmvObjRef.current !== null) {
-      const [nearmapLead] = jmvObjRef.current.view.map.layers.filter(
-        (bs: __esri.Layer) => bs.id.includes('base-')
-      );
-      if (nearmapLead) nearmapLead.visible = nmapActive;
+      const nearmapLead: __esri.Layer | undefined =
+        jmvObjRef.current.view.map.layers
+          .filter((bs: __esri.Layer) => bs.id.includes('base-'))
+          .at(0);
+
+      if (nearmapLead !== undefined) nearmapLead.visible = nmapActive;
     }
   }, [nmapActive, mapDate]);
 

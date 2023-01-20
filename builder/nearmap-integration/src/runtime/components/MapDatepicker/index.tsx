@@ -21,7 +21,7 @@ const { useState, useEffect } = React;
 
 interface DatePickerProps {
   mapDate: string;
-  setMapDate: any;
+  setMapDate: Function;
   dateList: string[];
 }
 
