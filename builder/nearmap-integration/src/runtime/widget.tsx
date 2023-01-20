@@ -77,11 +77,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     compareRef.current = value;
   };
 
-  const handleNmapActive = (): void => {
-    nmapActiveRef.current = !nmapActive;
-    setNmapActive(!nmapActive);
+  const handleNmapActive = useCallback((value: boolean): void => {
+    nmapActiveRef.current = value;
+    setNmapActive(value);
     handleCompare(false);
-  };
+  }, []);
 
   // Taken from https://gist.github.com/stdavis/6e5c721d50401ddbf126
   // By default ArcGIS SDK only goes to zoom level 19,
@@ -237,8 +237,11 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       const disabled = value !== null;
       setErrorMode(value);
       setNmapDisable(disabled);
+
+      if (disabled && value !== TIMEOUT) {
+        handleNmapActive(false);
+      }
       if (disabled) {
-        if (value !== TIMEOUT) setNmapActive(false);
         handleCompare(false);
       }
     };
@@ -275,7 +278,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         console.log(`nearmap coverage error: ${err}`);
         setDisable(TIMEOUT);
       });
-  }, [coverageURL, lonLat, nApiKey, originZoom, syncDates]);
+  }, [coverageURL, handleNmapActive, lonLat, nApiKey, originZoom, syncDates]);
 
   // map date hook
   useEffect(() => {
@@ -373,7 +376,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
                 aria-label="Activate Nearmap"
                 checked={nmapActive}
                 disabled={nmapDisable}
-                onChange={handleNmapActive}
+                onChange={() => handleNmapActive(!nmapActive)}
               />
             </div>
           </Tooltip>
@@ -418,6 +421,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           <ModalHeader>Error</ModalHeader>
           <ModalBody>
             {errorMode}
+            <br />
             Please refresh the page
           </ModalBody>
         </Modal>
