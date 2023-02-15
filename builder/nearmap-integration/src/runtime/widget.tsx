@@ -66,9 +66,10 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [nmapActive, setNmapActive] = useState(initialNmapActive);
   const [nmapDisable, setNmapDisable] = useState(false);
   const [errorMode, setErrorMode] = useState(null);
+  const [jimuView, setJimuView] = useState<JimuMapView>(null);
 
   const swipeWidgetRef = useRef<Swipe>();
-  const jmvObjRef = useRef<JimuMapView>(null);
+
   const compareRef = useRef(false);
   const nmapActiveRef = useRef(false);
 
@@ -172,63 +173,71 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
   const loadMapTask = useCallback(
     (date: string, isCompare: boolean): void => {
-      if (errorMode === null && jmvObjRef.current !== null) {
+      if (errorMode === null && jimuView !== null) {
         const newMapLayer = generateWebTileLayer(date, isCompare);
         // set compare map visibility to false when compare is false
         if ((!compareRef.current && isCompare) || !nmapActiveRef.current) {
           newMapLayer.visible = false;
         }
-        jmvObjRef.current.view.map.add(newMapLayer, 0);
+        jimuView.view.map.add(newMapLayer, 0);
 
         if (swipeWidgetRef.current !== undefined) {
           addSwipeLayer(isCompare, newMapLayer, swipeWidgetRef.current);
         }
       }
     },
-    [errorMode, generateWebTileLayer]
+    [errorMode, generateWebTileLayer, jimuView]
   );
 
-  const mapCleanupTask = useCallback((isCompare: boolean): void => {
-    if (jmvObjRef.current !== null) {
-      const oldId = isCompare ? 'compare-' : 'base-';
-      const oldLayers: __esri.Layer[] | undefined =
-        jmvObjRef.current.view.map.layers
+  const mapCleanupTask = useCallback(
+    (isCompare: boolean): void => {
+      if (jimuView !== null) {
+        const oldId = isCompare ? 'compare-' : 'base-';
+        const oldLayers: __esri.Layer[] | undefined = jimuView.view.map.layers
           .filter((y: __esri.Layer) => y.id.includes(oldId))
           .toArray();
 
-      jmvObjRef.current.view.map.removeMany(oldLayers);
+        jimuView.view.map.removeMany(oldLayers);
 
-      if (swipeWidgetRef.current !== undefined) {
-        removeSwipeLayer(isCompare, swipeWidgetRef.current);
+        if (swipeWidgetRef.current !== undefined) {
+          removeSwipeLayer(isCompare, swipeWidgetRef.current);
+        }
       }
-    }
-  }, []);
+    },
+    [jimuView]
+  );
 
   const activeViewChangeHandler = (jmvObj: JimuMapView) => {
-    jmvObjRef.current = jmvObj;
-
-    jmvObjRef.current.view.constraints = {
-      lods: getLods(),
-      maxZoom: nearmapMaxZoom
-    };
-
-    reactiveUtils.when(
-      () =>
-        jmvObjRef.current.view.stationary || !jmvObjRef.current.view.updating,
-      () => {
-        setLonLat([
-          jmvObjRef.current.view.center.longitude,
-          jmvObjRef.current.view.center.latitude
-        ]);
-      }
-    );
-
-    reactiveUtils
-      .whenOnce(() => jmvObjRef.current.view.ready)
-      .then(() => {
-        console.log('MapView is ready.');
-      });
+    if (jmvObj) {
+      setJimuView(jmvObj);
+    }
   };
+
+  // initial loading
+  useEffect(() => {
+    if (jimuView) {
+      jimuView.view.constraints = {
+        lods: getLods(),
+        maxZoom: nearmapMaxZoom
+      };
+
+      reactiveUtils.when(
+        () => jimuView.view.stationary || !jimuView.view.updating,
+        () => {
+          setLonLat([
+            jimuView.view.center.longitude,
+            jimuView.view.center.latitude
+          ]);
+        }
+      );
+
+      reactiveUtils
+        .whenOnce(() => jimuView.view.ready)
+        .then(() => {
+          console.log('MapView is ready.');
+        });
+    }
+  }, [getLods, jimuView, nearmapMaxZoom]);
 
   // fetch list of capture date based on origin
   useEffect(() => {
@@ -301,14 +310,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   // compare function
   useEffect(() => {
     if (errorMode === null && compare) {
-      const nearmapLead: __esri.Layer | undefined =
-        jmvObjRef.current.view.map.layers
-          .filter((bs) => bs.id.includes('base-'))
-          .at(0);
-      const nearmapTrail: __esri.Layer | undefined =
-        jmvObjRef.current.view.map.layers
-          .filter((cp) => cp.id.includes('compare'))
-          .at(0);
+      const nearmapLead: __esri.Layer | undefined = jimuView.view.map.layers
+        .filter((bs) => bs.id.includes('base-'))
+        .at(0);
+      const nearmapTrail: __esri.Layer | undefined = jimuView.view.map.layers
+        .filter((cp) => cp.id.includes('compare'))
+        .at(0);
 
       if (nearmapTrail !== undefined) nearmapTrail.visible = true;
 
@@ -317,37 +324,37 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         leadingLayers: [nearmapLead],
         trailingLayers: [nearmapTrail],
         position: 35, // set position of widget to 35%
-        view: jmvObjRef.current.view as __esri.MapView,
+        view: jimuView.view as __esri.MapView,
         id: 'compare-swipe'
       });
 
       swipeWidgetRef.current = swipe;
-      jmvObjRef.current.view.ui.add(swipe);
+      jimuView.view.ui.add(swipe);
     }
     return () => {
-      const nearmapTrail: __esri.Layer | undefined =
-        jmvObjRef.current.view.map.layers
+      if (jimuView) {
+        const nearmapTrail: __esri.Layer | undefined = jimuView.view.map.layers
           .filter((cp: __esri.Layer) => cp.id.includes('compare'))
           .at(0);
 
-      if (nearmapTrail !== undefined) nearmapTrail.visible = false;
-      if (swipeWidgetRef.current !== undefined) {
-        swipeWidgetRef.current.destroy();
+        if (nearmapTrail !== undefined) nearmapTrail.visible = false;
+        if (swipeWidgetRef.current !== undefined) {
+          swipeWidgetRef.current.destroy();
+        }
       }
     };
-  }, [compare, errorMode]);
+  }, [compare, errorMode, jimuView]);
 
   // set map visibility
   useEffect(() => {
-    if (jmvObjRef.current !== null) {
-      const nearmapLead: __esri.Layer | undefined =
-        jmvObjRef.current.view.map.layers
-          .filter((bs: __esri.Layer) => bs.id.includes('base-'))
-          .at(0);
+    if (jimuView !== null) {
+      const nearmapLead: __esri.Layer | undefined = jimuView.view.map.layers
+        .filter((bs: __esri.Layer) => bs.id.includes('base-'))
+        .at(0);
 
       if (nearmapLead !== undefined) nearmapLead.visible = nmapActive;
     }
-  }, [nmapActive, mapDate]);
+  }, [nmapActive, mapDate, jimuView]);
 
   return (
     <div className="jimu-widget">
@@ -368,7 +375,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           withIcon
         />
       </div>
-      {jmvObjRef.current !== null && (
+      {jimuView !== null && (
         <div className="grid-nav">
           <Tooltip
             placement="top"
@@ -437,7 +444,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
           </ModalBody>
         </Modal>
       </div>
-      {jmvObjRef.current === null && (
+      {jimuView === null && (
         <div>
           <Loading />
         </div>
