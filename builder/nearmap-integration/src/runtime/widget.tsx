@@ -1,13 +1,13 @@
-import { React, AllWidgetProps } from 'jimu-core';
-import { JimuMapViewComponent, JimuMapView } from 'jimu-arcgis';
-import format from 'date-fns/format';
-import WebTileLayer from 'esri/layers/WebTileLayer';
-import TileInfo from 'esri/layers/support/TileInfo';
-import LOD from 'esri/layers/support/LOD';
-import SpatialReference from 'esri/geometry/SpatialReference';
-import Point from 'esri/geometry/Point';
-import Swipe from 'esri/widgets/Swipe';
-import reactiveUtils from 'esri/core/reactiveUtils';
+import { React, AllWidgetProps } from "jimu-core";
+import { JimuMapViewComponent, JimuMapView } from "jimu-arcgis";
+import format from "date-fns/format";
+import WebTileLayer from "esri/layers/WebTileLayer";
+import TileInfo from "esri/layers/support/TileInfo";
+import LOD from "esri/layers/support/LOD";
+import SpatialReference from "esri/geometry/SpatialReference";
+import Point from "esri/geometry/Point";
+import Swipe from "esri/widgets/Swipe";
+import reactiveUtils from "esri/core/reactiveUtils";
 import {
   Modal,
   ModalBody,
@@ -15,32 +15,32 @@ import {
   Alert,
   Switch,
   Loading,
-  Tooltip
-} from 'jimu-ui';
+  Tooltip,
+} from "jimu-ui";
 
-import MapDatepicker from './components/MapDatepicker';
-import CompareNearmapButton from './components/CompareNearmap';
-import { IMConfig, NearmapCoverage } from '../config';
+import MapDatepicker from "./components/MapDatepicker";
+import CompareNearmapButton from "./components/CompareNearmap";
+import { IMConfig, NearmapCoverage } from "../config";
 import {
   addSwipeLayer,
   generateTileID,
   lat2tile,
   lon2tile,
-  removeSwipeLayer
-} from './components/Utils';
+  removeSwipeLayer,
+} from "./components/Utils";
 
-import './widget.css';
+import "./widget.css";
 
 const { useState, useEffect, useRef, useCallback } = React;
 
-const NO_KEY = 'API key not found';
-const NO_AUTHORIZE = 'You are not authorized to access this area';
-const NO_DATE = 'No Datelist Found';
-const TIMEOUT = 'Something wrong happened';
+const NO_KEY = "API key not found";
+const NO_AUTHORIZE = "You are not authorized to access this area";
+const NO_DATE = "No Datelist Found";
+const TIMEOUT = "Something wrong happened";
 
 const Widget = (props: AllWidgetProps<IMConfig>) => {
   // User Input Parameters
-  const dateToday = format(new Date(), 'yyyy-MM-dd');
+  const dateToday = format(new Date(), "yyyy-MM-dd");
   const {
     nApiKey, // "NEARMAP_API_KEY_GOES_HERE"
     tileURL, // Nearmap Tile API URL base
@@ -55,7 +55,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     tilesize,
     earthCircumference,
     inchesPerMeter,
-    initialNmapActive
+    initialNmapActive,
   } = props.config;
 
   const [mapDate, setMapDate] = useState(dateToday);
@@ -98,7 +98,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         new LOD({
           level: zoom,
           scale,
-          resolution
+          resolution,
         })
       );
     }
@@ -108,7 +108,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     inchesPerMeter,
     nearmapMaxZoom,
     nearmapMinZoom,
-    tilesize
+    tilesize,
   ]);
 
   // Create a tileinfo instance with increased level of detail
@@ -118,14 +118,14 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const getTileInfo = useCallback(() => {
     const tileInfo = new TileInfo({
       dpi: 72,
-      format: 'jpg',
+      format: "jpg",
       lods: getLods(),
       origin: new Point({
         x: -20037508.342787,
-        y: 20037508.342787
+        y: 20037508.342787,
       }),
       spatialReference: SpatialReference.WebMercator,
-      size: [256, 256]
+      size: [256, 256],
     });
     return tileInfo;
   }, [getLods]);
@@ -138,15 +138,15 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       // We are using tileinfo we created earlier.
       const wtl = new WebTileLayer({
         urlTemplate: `${tileURL}/${direction}/{level}/{col}/{row}.img?apikey=${nApiKey}&until=${date}`,
-        copyright: 'Nearmap',
+        copyright: "Nearmap",
         tileInfo: getTileInfo(),
         title: `Nearmap for ${id}`,
         opacity,
         // blendMode,
-        id
+        id,
       });
 
-      wtl.on('layerview-create-error', () => {
+      wtl.on("layerview-create-error", () => {
         wtl.refresh();
       });
 
@@ -192,7 +192,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const mapCleanupTask = useCallback(
     (isCompare: boolean): void => {
       if (jimuView !== null) {
-        const oldId = isCompare ? 'compare-' : 'base-';
+        const oldId = isCompare ? "compare-" : "base-";
         const oldLayers: __esri.Layer[] | undefined = jimuView.view.map.layers
           .filter((y: __esri.Layer) => y.id.includes(oldId))
           .toArray();
@@ -218,7 +218,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     if (jimuView) {
       jimuView.view.constraints = {
         lods: getLods(),
-        maxZoom: nearmapMaxZoom
+        maxZoom: nearmapMaxZoom,
       };
 
       reactiveUtils.when(
@@ -226,7 +226,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         () => {
           setLonLat([
             jimuView.view.center.longitude,
-            jimuView.view.center.latitude
+            jimuView.view.center.latitude,
           ]);
         }
       );
@@ -234,8 +234,9 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       reactiveUtils
         .whenOnce(() => jimuView.view.ready)
         .then(() => {
-          console.log('MapView is ready.');
-        });
+          console.log("MapView is ready.");
+        })
+        .catch((err) => console.log(err));
     }
   }, [getLods, jimuView, nearmapMaxZoom]);
 
@@ -311,10 +312,10 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   useEffect(() => {
     if (errorMode === null && compare) {
       const nearmapLead: __esri.Layer | undefined = jimuView.view.map.layers
-        .filter((bs) => bs.id.includes('base-'))
+        .filter((bs) => bs.id.includes("base-"))
         .at(0);
       const nearmapTrail: __esri.Layer | undefined = jimuView.view.map.layers
-        .filter((cp) => cp.id.includes('compare'))
+        .filter((cp) => cp.id.includes("compare"))
         .at(0);
 
       if (nearmapTrail !== undefined) nearmapTrail.visible = true;
@@ -325,7 +326,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         trailingLayers: [nearmapTrail],
         position: 35, // set position of widget to 35%
         view: jimuView.view as __esri.MapView,
-        id: 'compare-swipe'
+        id: "compare-swipe",
       });
 
       swipeWidgetRef.current = swipe;
@@ -334,7 +335,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
     return () => {
       if (jimuView) {
         const nearmapTrail: __esri.Layer | undefined = jimuView.view.map.layers
-          .filter((cp: __esri.Layer) => cp.id.includes('compare'))
+          .filter((cp: __esri.Layer) => cp.id.includes("compare"))
           .at(0);
 
         if (nearmapTrail !== undefined) nearmapTrail.visible = false;
@@ -349,7 +350,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   useEffect(() => {
     if (jimuView !== null) {
       const nearmapLead: __esri.Layer | undefined = jimuView.view.map.layers
-        .filter((bs: __esri.Layer) => bs.id.includes('base-'))
+        .filter((bs: __esri.Layer) => bs.id.includes("base-"))
         .at(0);
 
       if (nearmapLead !== undefined) nearmapLead.visible = nmapActive;
@@ -386,8 +387,8 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
             <div
               className={
                 !nmapActive || errorMode !== null
-                  ? 'nmapactive-button-alt'
-                  : 'nmapactive-button'
+                  ? "nmapactive-button-alt"
+                  : "nmapactive-button"
               }
             >
               <Switch
@@ -411,7 +412,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
                 compare={compare}
                 set={handleCompare}
                 disabled={!nmapActive}
-              />
+              />,
             ]}
           {!nmapDisable && compare && (
             <MapDatepicker

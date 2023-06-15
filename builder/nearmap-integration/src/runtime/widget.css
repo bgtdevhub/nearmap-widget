@@ -1,11 +1,3 @@
-/* @import 'esri/assets/esri/themes/light/main.css'; */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-
-html,
-body {
-  font-family: 'Roboto', sans-serif;
-}
-
 html,
 body,
 #viewDiv {
@@ -17,10 +9,11 @@ body,
 
 .grid-nav {
   display: grid;
-  grid-template-columns: 250px 40px 250px;
+  grid-template-columns: 255px 45px 255px;
   margin-bottom: 0.5rem;
   row-gap: 2px;
   /* column-gap: 2px; */
+  justify-content: center;
 }
 
 .nmapactive-button,
