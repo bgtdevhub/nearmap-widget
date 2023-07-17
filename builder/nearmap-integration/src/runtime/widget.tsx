@@ -1,4 +1,10 @@
-import { React, AllWidgetProps } from "jimu-core";
+import {
+  React,
+  AllWidgetProps,
+  getAppStore,
+  IMState,
+  ReactRedux,
+} from "jimu-core";
 import { JimuMapViewComponent, JimuMapView } from "jimu-arcgis";
 import format from "date-fns/format";
 import WebTileLayer from "esri/layers/WebTileLayer";
@@ -32,6 +38,7 @@ import {
 import "./widget.css";
 
 const { useState, useEffect, useRef, useCallback } = React;
+const { useSelector } = ReactRedux;
 
 const NO_KEY = "API key not found";
 const NO_AUTHORIZE = "You are not authorized to access this area";
@@ -67,11 +74,17 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   const [nmapDisable, setNmapDisable] = useState(false);
   const [errorMode, setErrorMode] = useState(null);
   const [jimuView, setJimuView] = useState<JimuMapView>(null);
+  const [nmapWidgetId, setNmapWidgetId] = useState(null);
+  const [ctrlWidgetId, setCtrlWidgetId] = useState(null);
 
   const swipeWidgetRef = useRef<Swipe>();
 
   const compareRef = useRef(false);
   const nmapActiveRef = useRef(false);
+
+  const widgetState = useSelector((state: IMState) => {
+    return state.widgetsRuntimeInfo;
+  });
 
   const handleCompare = (value: boolean): void => {
     setCompare(value);
@@ -221,6 +234,19 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         maxZoom: nearmapMaxZoom,
       };
 
+      // check if widget exist inside widget controller
+      const widgets = getAppStore().getState().appConfig.widgets;
+      console.log(Object.values(widgets));
+      const [nmapWidget] = Object.values(widgets).filter(
+        (x) => x.uri === "widgets/nearmap-integration/"
+      );
+      const [controllerWidget] = Object.values(widgets).filter(
+        (x) => x.uri === "widgets/common/controller/"
+      );
+
+      if (nmapWidget) setNmapWidgetId(nmapWidget.id);
+      if (controllerWidget) setCtrlWidgetId(controllerWidget.id);
+
       reactiveUtils.when(
         () => jimuView.view.stationary || !jimuView.view.updating,
         () => {
@@ -345,6 +371,15 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
       }
     };
   }, [compare, errorMode, jimuView]);
+
+  // widget in controller behaviour control
+  useEffect(() => {
+    const nmapState = widgetState[nmapWidgetId];
+
+    if (!(ctrlWidgetId && nmapWidgetId && nmapState.state === "OPENED")) {
+      handleNmapActive(false);
+    }
+  }, [ctrlWidgetId, handleNmapActive, nmapWidgetId, widgetState]);
 
   // set map visibility
   useEffect(() => {
