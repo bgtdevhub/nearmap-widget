@@ -8,6 +8,8 @@
 | 1.9     | :white_check_mark: |
 | 1.10    | :white_check_mark: |
 | 1.11    | :white_check_mark: |
+| 1.12    | :white_check_mark: |
+| 1.13    | :white_check_mark: |
 
 ### For [ArcGIS Enterprise](./enterprise/)
 

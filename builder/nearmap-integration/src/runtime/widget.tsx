@@ -236,7 +236,7 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
 
       // check if widget exist inside widget controller
       const widgets = getAppStore().getState().appConfig.widgets;
-      console.log(Object.values(widgets));
+
       const [nmapWidget] = Object.values(widgets).filter(
         (x) => x.uri === "widgets/nearmap-integration/"
       );
@@ -262,7 +262,9 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
         .then(() => {
           console.log("MapView is ready.");
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+          console.log(err);
+        });
     }
   }, [getLods, jimuView, nearmapMaxZoom]);
 
@@ -376,7 +378,12 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
   useEffect(() => {
     const nmapState = widgetState[nmapWidgetId];
 
-    if (!(ctrlWidgetId && nmapWidgetId && nmapState.state === "OPENED")) {
+    if (
+      ctrlWidgetId &&
+      nmapWidgetId &&
+      nmapState &&
+      nmapState.state === "CLOSED"
+    ) {
       handleNmapActive(false);
     }
   }, [ctrlWidgetId, handleNmapActive, nmapWidgetId, widgetState]);
@@ -430,7 +437,9 @@ const Widget = (props: AllWidgetProps<IMConfig>) => {
                 aria-label="Activate Nearmap"
                 checked={nmapActive}
                 disabled={nmapDisable}
-                onChange={() => handleNmapActive(!nmapActive)}
+                onChange={() => {
+                  handleNmapActive(!nmapActive);
+                }}
               />
             </div>
           </Tooltip>
